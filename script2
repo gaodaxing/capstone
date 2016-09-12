@@ -1,0 +1,37 @@
+clean_sentence<-function(sentence){
+  docs=Corpus(VectorSource(c(sentence)))
+  docs=tm_map(docs,content_transformer(tolower))
+  docs=tm_map(docs,removePunctuation)
+  docs=tm_map(docs, removeNumbers)
+  docs=tm_map(docs,stripWhitespace)
+  docs=tm_map(docs,removeWords,stopwords("english"))
+  docs=tm_map(docs,PlainTextDocument)
+  docs=as.character(docs[[1]])
+  words=strsplit(docs,"\\s+")[[1]]
+  uniword=words[length(words)]
+  biword=words[(length(words)-1):length(words)]
+  biword=paste(biword,collapse=" ")
+  return(list(uniword,biword))
+}
+
+calculatep<-function(uniword,biword,alpha){
+  biword1=paste(biword," ",sep="")##3 gram prediction
+  ##if(sum(grepl(biword1,rownames(trifreq)))!=0){
+  Trigram=data.frame(Frequency=trifreq[grepl(biword1,rownames(trifreq)),])##search for 3 grams contain last two key words
+  rownames(Trigram)=rownames(trifreq)[grepl(biword1,rownames(trifreq))]
+  Bigram=data.frame(Frequency=bifreq[grep(biword,rownames(bifreq)),])##search for 2 gram contain last two key words
+  rownames(Bigram)=rownames(bifreq)[grep(biword,rownames(bifreq))]
+  Trigram$p=Trigram$Frequency/bigram$Frequency[1]## calculate frequency possibility
+  ##}
+  
+  uniword1=paste(uniword," ",sep="")## 2 gram prediction
+  ##if(sum(grepl(uniword1,rownames(bifreq)))!=0){
+  bigram=data.frame(Frequency=bifreq[grepl(uniword1,rownames(bifreq)),])
+  rownames(bigram)=rownames(bifreq)[grepl(uniword1,rownames(bifreq))]
+  unigram=data.frame(Frequency=unifreq[grep(uniword,rownames(unifreq)),])
+  rownames(unigram)=rownames(unifreq)[grep(uniword,rownames(unifreq))]
+  bigram$p=bigram$Frequency/unigram$Frequency[1]*alpha
+  ##}
+  
+  result=rbind(Trigram,bigram)
+}
