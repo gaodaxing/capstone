@@ -1,0 +1,65 @@
+suppressWarnings(library(tm))
+suppressWarnings(library(RWeka))
+path='C:\\Users\\Daxing\\Documents\\final\\en_US'
+path1=file.path(path,"en_US.blogs.txt")
+path2=file.path(path,"en_US.news.txt")
+path3=file.path(path,"en_US.twitter.txt")
+fh1=file(path1)
+fh2=file(path2)
+fh3=file(path3)
+
+f1=readLines(fh1,encoding="UTF-8",warn=F)
+f1=sample(f1,NROW(f1)*0.05)
+close(fh1)
+f1=sapply(f1,function(x){iconv(x,"latin1", "ASCII", sub="")})
+f2=readLines(fh2,encoding="UTF-8",warn=F)
+f2=sample(f2,NROW(f2)*0.05)
+close(fh2)
+f2=sapply(f2,function(x){iconv(x,"latin1", "ASCII", sub="")})
+f3=readLines(fh3,encoding="UTF-8",warn=F)
+f3=sample(f3,NROW(f3)*0.05)
+close(fh3)
+f3=sapply(f3,function(x){iconv(x,"latin1", "ASCII", sub="")})##remove emoji from twitter
+
+
+docs=Corpus(VectorSource(c(f1,f2,f3)))
+docs=tm_map(docs,content_transformer(tolower))
+docs=tm_map(docs,removePunctuation)
+docs=tm_map(docs, removeNumbers)
+docs=tm_map(docs,stripWhitespace)
+docs=tm_map(docs,removeWords,stopwords("english"))
+docs=tm_map(docs,PlainTextDocument)
+
+UnigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 1, max = 1))##build unigram
+BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))##build bigram
+TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))##build trigram
+
+tdm1<-TermDocumentMatrix(docs,control = list(tokenize=UnigramTokenizer))
+tdm1=removeSparseTerms(tdm1,.9999)##remove sparse term
+tdm1m<-as.matrix(tdm1)
+tdm1_hf=as.data.frame(rowSums(tdm1m))#calculate unigram frequency
+colnames(tdm1_hf)="count"
+tdm1_hf_ordered=as.data.frame(tdm1_hf[order(tdm1_hf$count,decreasing=T),])#sort the unigram by frequency
+rownames(tdm1_hf_ordered)=rownames(tdm1_hf)[order(tdm1_hf$count,decreasing=T)]
+colnames(tdm1_hf_ordered)="Frequency"
+unifreq=tdm1_hf_ordered
+
+tdm2<-TermDocumentMatrix(docs,control = list(tokenize=BigramTokenizer))
+tdm2=removeSparseTerms(tdm2,.9999)##remove sparse term
+tdm2m<-as.matrix(tdm2)
+tdm2_hf=as.data.frame(rowSums(tdm2m))#calculate bigram frequency
+colnames(tdm2_hf)="count"
+tdm2_hf_ordered=as.data.frame(tdm2_hf[order(tdm2_hf$count,decreasing=T),])#sort the bigram by frequency
+rownames(tdm2_hf_ordered)=rownames(tdm2_hf)[order(tdm2_hf$count,decreasing=T)]
+colnames(tdm2_hf_ordered)="Frequency"
+bifreq=tdm2_hf_ordered
+
+tdm3<-TermDocumentMatrix(docs,control = list(tokenize=TrigramTokenizer))
+tdm3=removeSparseTerms(tdm3,.9999)##remove sparse term
+tdm3m<-as.matrix(tdm3)
+tdm3_hf=as.data.frame(rowSums(tdm3m))#calculate trigram frequency
+colnames(tdm3_hf)="count"
+tdm3_hf_ordered=as.data.frame(tdm3_hf[order(tdm3_hf$count,decreasing=T),])#sort the trigram by frequency
+rownames(tdm3_hf_ordered)=rownames(tdm3_hf)[order(tdm3_hf$count,decreasing=T)]
+colnames(tdm3_hf_ordered)="Frequency"
+trifreq=tdm3_hf_ordered
